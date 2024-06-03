@@ -27,7 +27,7 @@ jobs:
           echo yarn test
       - name: test timestamp
         run: |
-          echo merge to main timestamp is ${{ github.head_commit.timestamp }}
+          echo merge to main timestamp is ${{ github.event.head_commit.timestamp }}
           echo success deploy timestamp is $(date)
 
   deploy-staging:
