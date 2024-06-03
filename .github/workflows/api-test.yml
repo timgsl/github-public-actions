@@ -53,6 +53,11 @@ jobs:
 
           # send prod deployment complete metric to rc main api public endpoint
           # curl https://api.referralcandy.com/v1/analytics/deployments \
+
+          curl pie.dev/post \
+          --header "Content-Type: application/json" \
+          --data "$(generate_post_json_data)"
+
           curl https://api.dev.anafore.com/staging/analytics/deployments \
           --header "Content-Type: application/json" \
           --data "$(generate_post_json_data)"
