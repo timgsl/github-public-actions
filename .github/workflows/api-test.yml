@@ -15,13 +15,20 @@ jobs:
     steps:
       # - name: Checkout code
       #   uses: actions/checkout@v3
+      - name: Dump GitHub context
+        id: github_context_step
+        run: |
+          echo '${{ toJSON(github) }}'
       - name: Install dependencies
         run: |
           echo yarn install
-
       - name: test
         run: |
           echo yarn test
+      - name: test timestamp
+        run: |
+          echo merge to main timestamp is ${{ github.head_commit.timestamp }}
+          echo success deploy timestamp is $(date)
 
   deploy-staging:
     runs-on: ubuntu-latest
@@ -45,3 +52,8 @@ jobs:
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         run: |
           echo yarn deploy production
+      - name: Post github workflow stats to server
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        run: |
+          echo merge to main timestamp is ${{ github.head_commit.timestamp }}
+          echo success deploy timestamp is $(date)
