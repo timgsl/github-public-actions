@@ -3,11 +3,11 @@ on:
   push:
     branches:
       - main
-    paths:
-      - 'packages/api/**'
-  pull_request:
-    paths:
-      - 'packages/api/**'
+  #   paths:
+  #     - 'packages/api/**'
+  # pull_request:
+  #   paths:
+  #     - 'packages/api/**'
 jobs:
   test:
     runs-on: ubuntu-latest
@@ -47,16 +47,35 @@ jobs:
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         run: |
           echo yarn deploy production
-      - name: Post github workflow stats to server
+      - name: send deployment metric
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         run: |
-          echo merge to main iso date ${{ github.event.head_commit.timestamp }}
-          echo merge to main unix timestamp $(date -d ${{ github.event.head_commit.timestamp }} +%s)
-          echo deploy success timestamp $(date)
-          echo deploy success unix timestamp $(date +%s)
-          curl --get pie.dev/get \
-          -d workflow=$GITHUB_WORKFLOW \
-          -d run_number=${{ github.run_number }} \
-          -d run_attempt=${{ github.run_attempt }} \
-          -d start_timestamp=$(date -d ${{ github.event.head_commit.timestamp }} +%s) \
-          -d end_timestamp=$(date +%s)
+          echo sending deployment metric
+          echo workflow                    : $GITHUB_WORKFLOW
+          echo run_number                  : ${{ github.run_number }}
+          echo run_attempt                 : ${{ github.run_attempt }}
+          echo start_timestamp             : $(date -d ${{ github.event.head_commit.timestamp }} +%s)
+          echo end_timestamp               : $(date +%s)
+          # define a bash function to generate json data for curl
+          generate_post_json_data()
+          {
+            cat <<EOF
+          {
+            "workflow": "$GITHUB_WORKFLOW",
+            "run_number": ${{ github.run_number }},
+            "run_attempt": ${{ github.run_attempt }},
+            "start_timestamp": $(date -d ${{ github.event.head_commit.timestamp }} +%s),
+            "end_timestamp": "$(date +%s)"
+          }
+          EOF
+          }
+
+          # send prod deployment complete metric to rc main api public endpoint
+          # curl https://api.referralcandy.com/v1/analytics/deployments \
+          curl pie.dev/post \
+          --header "Content-Type: application/json" \
+          --data "$(generate_post_json_data)"
+
+          # curl https://api.dev.anafore.com/staging/analytics/deployments \
+          # --header "Content-Type: application/json" \
+          # --data "$(generate_post_json_data)"
