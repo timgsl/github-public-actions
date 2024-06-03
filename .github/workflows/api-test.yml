@@ -1,4 +1,4 @@
-name: api test and deploy
+name: api-test-and-deploy
 on:
   push:
     branches:
