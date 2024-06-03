@@ -24,6 +24,64 @@ jobs:
       - name: test
         run: |
           echo yarn test
+      - name: send metric
+        run: |
+          echo merge to main iso date ${{ github.event.head_commit.timestamp }}
+          echo deploy success unix timestamp $(date +%s)
+          echo
+          echo sending deployment metric
+          echo workflow                    : $GITHUB_WORKFLOW
+          echo run number                  : ${{ github.run_number }}
+          echo run attempt                 : ${{ github.run_attempt }}
+          echo merge to main unix timestamp🔴🔴: ${{ github.event.head_commit.timestamp }}
+          echo merge to main unix timestamp: $(date -d ${{ github.event.head_commit.timestamp }} +%s)
+          echo deploy success timestamp    : $(date +%s)
+
+          # define a bash function to generate json data for curl
+          generate_post_json_data()
+          {
+            cat <<EOF
+          {
+            "workflow": "$GITHUB_WORKFLOW",
+            "run_number": ${{ github.run_number }},
+            "run_attempt": ${{ github.run_attempt }},
+            "start_timestamp": $(date -d ${{ github.event.head_commit.timestamp }} +%s), 
+            "end_timestamp": "$(date +%s)"
+          }
+          EOF
+          }
+
+          # send prod deployment complete metric to rc main api public endpoint
+          # curl https://api.referralcandy.com/v1/analytics/deployments \
+          curl https://api.dev.anafore.com/staging/analytics/deployments \
+          --header "Content-Type: application/json" \
+          --data "$(generate_post_json_data)"
+      - name: stats
+        run: |
+          generate_post_json_data()
+          {
+            cat <<EOF
+          {
+            "firstName": "tim",
+            "lastName": "$(date +%s)"
+          }
+          EOF
+          }
+
+          # https://stackoverflow.com/questions/7172784/how-do-i-post-json-data-with-curl
+          echo $(generate_post_data)
+          echo merge to main iso date ${{ github.event.head_commit.timestamp }}
+          echo merge to main unix timestamp $(date -d ${{ github.event.head_commit.timestamp }} +%s)
+          echo deploy success timestamp $(date)
+          echo deploy success unix timestamp $(date +%s)
+          curl pie.dev/post \
+          --header "Content-Type: application/json" \
+          -d "$(generate_post_json_data)"
+          # -d workflow=$GITHUB_WORKFLOW
+          # -d run_number=${{ github.run_number }} \
+          # -d run_attempt=${{ github.run_attempt }} \
+          # -d start_timestamp=$(date -d ${{ github.event.head_commit.timestamp }} +%s) \
+          # -d end_timestamp=$(date +%s)
 
   deploy-staging:
     runs-on: ubuntu-latest
@@ -49,13 +107,60 @@ jobs:
           echo yarn deploy production
       - name: Post github workflow stats to server
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-        run: |
+        run: >
+          generate_post_data()
+          {
+            cat <<EOF
+          {
+            "account": {
+              "email": "$email",
+              "screenName": "$screenName",
+              "type": "$theType",
+              "passwordSettings": {
+                "password": "$password",
+                "passwordConfirm": "$password"
+              }
+            },
+            "firstName": "$firstName",
+            "lastName": "$lastName",
+            "middleName": "$middleName",
+            "locale": "$locale",
+            "registrationSiteId": "$registrationSiteId",
+            "receiveEmail": "$receiveEmail",
+            "dateOfBirth": "$dob",
+            "mobileNumber": "$mobileNumber",
+            "gender": "$gender",
+            "fuelActivationDate": "$fuelActivationDate",
+            "postalCode": "$postalCode",
+            "country": "$country",
+            "city": "$city",
+            "state": "$state",
+            "bio": "$bio",
+            "jpFirstNameKana": "$jpFirstNameKana",
+            "jpLastNameKana": "$jpLastNameKana",
+            "height": "$height",
+            "weight": "$weight",
+            "distanceUnit": "MILES",
+            "weightUnit": "POUNDS",
+            "heightUnit": "FT/INCHES"
+          }
+          EOF
+          }
+
+          echo $(generate_post_data)
+
           echo merge to main iso date ${{ github.event.head_commit.timestamp }}
+
           echo merge to main unix timestamp $(date -d ${{ github.event.head_commit.timestamp }} +%s)
+
           echo deploy success timestamp $(date)
+
           echo deploy success unix timestamp $(date +%s)
-          curl --get pie.dev/get \
-          -d workflow=$GITHUB_WORKFLOW \
+
+          curl pie.dev/post
+          --header "Content-Type: application/json"
+          -d {"}
+          -d workflow=$GITHUB_WORKFLOW
           -d run_number=${{ github.run_number }} \
           -d run_attempt=${{ github.run_attempt }} \
           -d start_timestamp=$(date -d ${{ github.event.head_commit.timestamp }} +%s) \
