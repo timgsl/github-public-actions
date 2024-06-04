@@ -8,10 +8,10 @@ on:
   # pull_request:
   #   paths:
   #     - 'packages/api/**'
-# concurrency:
-# cancel any old in progress tests for the PR if there are newer tests running
-# group: ${{ github.workflow }}-${{ github.ref }}
-# cancel-in-progress: true
+concurrency:
+  # cancel any old in progress tests for the PR if there are newer tests running
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 jobs:
   test:
     runs-on: ubuntu-latest
@@ -32,6 +32,7 @@ jobs:
       - name: test
         run: |
           echo yarn test
+          echo sleeping for 60s
           sleep 60
 
   deploy-staging:
