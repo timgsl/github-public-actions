@@ -32,6 +32,7 @@ jobs:
       - name: test
         run: |
           echo yarn test
+          sleep 60
 
   deploy-staging:
     runs-on: ubuntu-latest
