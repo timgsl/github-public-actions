@@ -1,0 +1,1 @@
+deployment status default branch: [![api-test-and-deploy](https://github.com/timgsl/github-public-actions/actions/workflows/api-test.yml/badge.svg?event=deployment_status)](https://github.com/timgsl/github-public-actions/actions/workflows/api-test.yml)
