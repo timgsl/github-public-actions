@@ -8,20 +8,20 @@ on:
   # pull_request:
   #   paths:
   #     - 'packages/api/**'
-concurrency:
-  # cancel any old in progress tests for the PR if there are newer tests running
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+# concurrency:
+#   # cancel any old in progress tests for the PR if there are newer tests running
+#   group: ${{ github.workflow }}-${{ github.ref }}
+#   cancel-in-progress: true
 jobs:
   test:
     runs-on: ubuntu-latest
     steps:
       # - name: Checkout code
       #   uses: actions/checkout@v3
-      # - name: Dump GitHub context
-      #   id: github_context_step
-      #   run: |
-      #     echo '${{ toJSON(github) }}'
+      - name: Dump GitHub context
+        id: github_context_step
+        run: |
+          echo '${{ toJSON(github) }}'
       - name: show some vars
         run: |
           echo github workflow ${{ github.workflow }}
@@ -89,3 +89,46 @@ jobs:
           # curl https://api.dev.anafore.com/staging/analytics/deployments \
           # --header "Content-Type: application/json" \
           # --data "$(generate_post_json_data)"
+
+  # https://docs.github.com/en/rest/actions/workflow-runs?apiVersion=2022-11-28#list-workflow-runs-for-a-repository
+  # https://docs.github.com/en/search-github/getting-started-with-searching-on-github/understanding-the-search-syntax#query-for-dates
+  # the concurrency matrix is too eager, it cancels previous in progress workflows too quickly
+  # for example, if the workflow takes 10mins, but there is a new workflow started every 5 minutes, the previous workflow will always be cancelled
+  # instead, only cancel previous workflow if the newest deployment becomes ready
+  # how to not cancel if previous workflow is deploying
+  cancel-previous-in-progress-workflows:
+    needs: deploy-staging
+    runs-on: ubuntu-latest
+    steps:
+      - name: Cancel previous workflow runs
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.MY_GH_TOKEN }}
+          script: |
+            const todayDate = context.payload.head_commit.timestamp.slice(0,10)
+            console.log('today is', todayDate)
+
+            console.log('listing workflowRuns')
+            const workflowRuns = await github.rest.actions.listWorkflowRuns({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              workflow_id: 'api-test.yml',
+              branch: 'main',
+              status: 'NOT completed',
+              created: `>${todayDate}T00:00:00+08:00`
+            });
+
+            await Promise.all(
+              workflowRuns.data.workflow_runs.map(async (workflowRun) => {
+                if ( context.runNumber != workflowRun.run_number && workflowRun.status != 'completed' ){
+                  // might need an additional check to see if workflow's deployment is in progress
+                  // if the previous workflow has begun to deploy should we not cancel it?
+                  console.log(`cancelling ${workflowRun.run_number} ${workflowRun.status} ${workflowRun.head_sha} ${workflowRun.created_at} ${workflowRun.id}`)
+                  await github.rest.actions.cancelWorkflowRun({
+                    owner: context.repo.owner,
+                    repo: context.repo.repo,
+                    run_id: workflowRun.id
+                  });
+                } 
+              })
+            );
