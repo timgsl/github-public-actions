@@ -8,16 +8,24 @@ on:
   # pull_request:
   #   paths:
   #     - 'packages/api/**'
+# concurrency:
+# cancel any old in progress tests for the PR if there are newer tests running
+# group: ${{ github.workflow }}-${{ github.ref }}
+# cancel-in-progress: true
 jobs:
   test:
     runs-on: ubuntu-latest
     steps:
       # - name: Checkout code
       #   uses: actions/checkout@v3
-      - name: Dump GitHub context
-        id: github_context_step
+      # - name: Dump GitHub context
+      #   id: github_context_step
+      #   run: |
+      #     echo '${{ toJSON(github) }}'
+      - name: show some vars
         run: |
-          echo '${{ toJSON(github) }}'
+          echo github workflow ${{ github.workflow }}
+          echo github ref ${{ github.ref }}
       - name: Install dependencies
         run: |
           echo yarn install
